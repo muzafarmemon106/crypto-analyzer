@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111936">
+<meta name="description" content="Crypto market indicator analyzer and paper trading simulator">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>Crypto AI Analyzer — Paper Trader</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#0b1020;color:#eef2ff}
+header{padding:22px;background:#111936;border-bottom:1px solid #29345b}h1{margin:0 0 7px;font-size:24px}
+.sub{color:#aeb8d8;font-size:13px}.wrap{max-width:1100px;margin:auto;padding:18px}
+.controls,.card{background:#121a35;border:1px solid #29345b;border-radius:14px;padding:16px;margin-bottom:14px}
+.controls{display:flex;gap:10px;flex-wrap:wrap}select,button{padding:11px 13px;border-radius:9px;border:1px solid #39466f;background:#192344;color:white}
+button{cursor:pointer;font-weight:700}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.metric{background:#0e1530;padding:14px;border-radius:11px}.label{font-size:12px;color:#9eabd0}.value{font-size:22px;font-weight:700;margin-top:5px}
+.signal{font-size:25px;font-weight:800;padding:12px;border-radius:10px;text-align:center}.bull{background:#123b2c;color:#62e6a6}.bear{background:#431d2a;color:#ff8197}.wait{background:#3d3417;color:#ffd66b}
+table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid #29345b;text-align:left;font-size:13px}
+.small{font-size:12px;color:#9eabd0;line-height:1.5}.ok{color:#65e6a6}.warn{color:#ffd66b}.bad{color:#ff8197}
+@media(max-width:600px){h1{font-size:20px}.value{font-size:18px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><h1>🤖 Crypto AI Analyzer</h1><div class="sub">Live technical analysis + paper trading. Educational use only — not financial advice.</div></div></header>
+<main class="wrap">
+<section class="controls">
+<select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option><option>BNBUSDT</option><option>SOLUSDT</option><option>XRPUSDT</option><option>DOGEUSDT</option><option>ADAUSDT</option></select>
+<select id="interval"><option value="15m">15 min</option><option value="1h" selected>1 hour</option><option value="4h">4 hours</option><option value="1d">1 day</option></select>
+<button onclick="analyze()">Analyze</button><button onclick="paperBuy()">Paper Buy</button><button onclick="paperSell()">Paper Sell</button>
+</section>
+
+<section class="card"><div id="signal" class="signal wait">Loading analysis…</div><p id="explain" class="small"></p></section>
+<section class="grid">
+<div class="metric"><div class="label">Price</div><div id="price" class="value">—</div></div>
+<div class="metric"><div class="label">RSI (14)</div><div id="rsi" class="value">—</div></div>
+<div class="metric"><div class="label">MACD</div><div id="macd" class="value">—</div></div>
+<div class="metric"><div class="label">EMA 20</div><div id="ema20" class="value">—</div></div>
+<div class="metric"><div class="label">EMA 50</div><div id="ema50" class="value">—</div></div>
+<div class="metric"><div class="label">Risk Score</div><div id="risk" class="value">—</div></div>
+</section>
+
+<section class="card"><h3>Support / Resistance</h3><div class="grid">
+<div class="metric"><div class="label">Support</div><div id="support" class="value">—</div></div>
+<div class="metric"><div class="label">Resistance</div><div id="resistance" class="value">—</div></div>
+</div></section>
+
+<section class="card"><h3>Paper Portfolio</h3>
+<div class="grid">
+<div class="metric"><div class="label">Virtual Cash</div><div id="cash" class="value">$10,000</div></div>
+<div class="metric"><div class="label">Coin Held</div><div id="held" class="value">0</div></div>
+<div class="metric"><div class="label">Last Action</div><div id="action" class="value">None</div></div>
+</div>
+<p class="small">Paper trades only. The simulator does not place orders on an exchange.</p>
+</section>
+
+<section class="card"><h3>How the signal is calculated</h3>
+<p class="small">The prototype combines RSI, MACD, EMA20/EMA50 trend and recent volume. No single indicator is treated as certain. “Bullish” means the indicators currently lean positive; “Bearish” means they lean negative; “Wait” means mixed/unclear conditions.</p>
+</section>
+</main>
+<script>
+let candles=[], state={cash:10000,held:0,last:"None"}, currentPrice=0;
+
+function fmt(x){return Number(x).toLocaleString(undefined,{maximumFractionDigits:4})}
+function closes(){return candles.map(x=>+x[4])}
+function volumes(){return candles.map(x=>+x[5])}
+function sma(a,n){if(a.length<n)return null;return a.slice(-n).reduce((x,y)=>x+y,0)/n}
+function ema(a,n){if(a.length<n)return null;let k=2/(n+1),e=sma(a.slice(0,n),n);for(let i=n;i<a.length;i++)e=a[i]*k+e*(1-k);return e}
+function rsi(a,n=14){if(a.length<n+1)return null;let g=0,l=0;for(let i=a.length-n;i<a.length;i++){let d=a[i]-a[i-1];if(d>0)g+=d;else l-=d}if(l===0)return 100;let rs=(g/n)/(l/n);return 100-100/(1+rs)}
+function macd(a){let e12=ema(a,12),e26=ema(a,26);return e12-e26}
+function set(id,v){document.getElementById(id).textContent=v}
+
+async function analyze(){
+ try{
+  set("signal","Loading…"); document.getElementById("signal").className="signal wait";
+  let s=document.getElementById("symbol").value, int=document.getElementById("interval").value;
+  let url=`https://api.binance.com/api/v3/klines?symbol=${s}&interval=${int}&limit=150`;
+  let res=await fetch(url); if(!res.ok) throw new Error("Market API unavailable");
+  candles=await res.json(); let c=closes(), v=volumes(); currentPrice=c.at(-1);
+  let R=rsi(c), M=macd(c), E20=ema(c,20), E50=ema(c,50), avgV=sma(v,20);
+  let score=0, reasons=[];
+  if(R<30){score+=2;reasons.push("RSI is oversold")} else if(R>70){score-=2;reasons.push("RSI is overbought")} else reasons.push("RSI is neutral");
+  if(M>0){score++;reasons.push("MACD is positive")}else{score--;reasons.push("MACD is negative")}
+  if(E20>E50){score++;reasons.push("EMA20 is above EMA50")}else{score--;reasons.push("EMA20 is below EMA50")}
+  if(currentPrice>E20){score++;reasons.push("price is above EMA20")}else{score--;reasons.push("price is below EMA20")}
+  let lastV=v.at(-1); if(avgV && lastV>avgV*1.5) reasons.push("volume is unusually high");
+  let sig=score>=2?"BULLISH":score<=-2?"BEARISH":"WAIT";
+  let el=document.getElementById("signal"); el.textContent=sig; el.className="signal "+(sig==="BULLISH"?"bull":sig==="BEARISH"?"bear":"wait");
+  set("explain",reasons.join(" • ")+" • This is an indicator-based paper-trading signal, not a guaranteed prediction.");
+  set("price",fmt(currentPrice));set("rsi",R?.toFixed(2));set("macd",M?.toFixed(5));set("ema20",fmt(E20));set("ema50",fmt(E50));
+  let recent=c.slice(-30), sup=Math.min(...recent), resi=Math.max(...recent);set("support",fmt(sup));set("resistance",fmt(resi));
+  let risk=Math.min(100,Math.max(0,50+Math.abs(score)*12+(R>70||R<30?10:0)));set("risk",Math.round(risk)+"/100");
+  render();
+ }catch(e){document.getElementById("signal").textContent="Unable to load market data";document.getElementById("signal").className="signal bear";set("explain",e.message+". Check your internet connection or try again later.")}
+}
+function paperBuy(){if(!currentPrice)return;let amount=Math.min(state.cash,1000);state.cash-=amount;state.held+=amount/currentPrice;state.last="Paper BUY @ "+fmt(currentPrice);render()}
+function paperSell(){if(!currentPrice||state.held<=0)return;state.cash+=state.held*currentPrice;state.held=0;state.last="Paper SELL @ "+fmt(currentPrice);render()}
+function render(){set("cash","$"+fmt(state.cash));set("held",fmt(state.held));set("action",state.last)}
+analyze();
+</script>
+<script>
+if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+}
+</script>
+</body></html>
