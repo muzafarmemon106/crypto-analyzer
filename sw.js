@@ -1,9 +1,20 @@
-const CACHE = "crypto-analyzer-shell-v1";
-const ASSETS = ["./", "./index.html", "./manifest.json", "./icon.svg"];
-self.addEventListener("install", e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS))));
-self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
-self.addEventListener("fetch", e => {
-  if (new URL(e.request.url).origin === self.location.origin) {
-    e.respondWith(caches.match(e.request).then(cached => cached || fetch(e.request)));
-  }
+
+const CACHE_PREFIX = "crypto-analyzer-";
+
+self.addEventListener("install", (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys()
+      .then((keys) =>
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith(CACHE_PREFIX))
+            .map((key) => caches.delete(key))
+        )
+      )
+      .then(() => self.clients.claim())
+  );
 });
