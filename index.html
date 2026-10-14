@@ -1,242 +1,303 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#080d18">
 <title>Crypto Analyzer Pro</title>
 <style>
-:root{--bg:#080d18;--panel:#111a2b;--line:#26334a;--text:#edf3ff;--muted:#92a2bd;--green:#24d69a;--red:#ff647c;--blue:#70a5ff}
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--text);font:15px Arial,sans-serif}
-header{padding:22px 16px;background:#101a2c;border-bottom:1px solid var(--line)}
-header h1{margin:0;font-size:25px;color:var(--green)}
-header p{margin:8px 0 0;color:var(--muted);font-size:13px}
-main{max-width:850px;margin:auto;padding:16px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:16px;margin-bottom:15px}
-h2{font-size:17px;margin:0 0 14px}
-.muted{color:var(--muted);font-size:12px}
-.coins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-.coin{background:#0c1423;border:1px solid var(--line);border-radius:11px;padding:13px;cursor:pointer}
-.coin.active{border-color:var(--green)}
-.coin b{display:block;margin-bottom:10px}
-.price{font-size:17px;font-weight:bold;overflow-wrap:anywhere}
-.up{color:var(--green)}.down{color:var(--red)}
-select,input{width:100%;background:#0b1322;color:var(--text);border:1px solid var(--line);padding:12px;border-radius:9px;margin:7px 0 13px;font-size:15px}
-button{background:var(--green);color:#07130f;border:0;padding:12px 16px;border-radius:9px;font-weight:bold;cursor:pointer}
-button.secondary{background:#263750;color:white}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.signal{padding:15px;border-radius:10px;background:#0b1423;text-align:center}
-.signal strong{display:block;font-size:23px;margin:8px 0}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.stat{padding:12px;background:#0b1423;border-radius:9px}
-.stat span{display:block;color:var(--muted);font-size:12px;margin-bottom:8px}
-.stat b{overflow-wrap:anywhere}
-canvas{width:100%;height:190px;display:block}
-.note{font-size:12px;line-height:1.6;color:var(--muted)}
-footer{text-align:center;padding:20px;color:var(--muted);font-size:12px}
-@media(min-width:600px){.coins{grid-template-columns:repeat(3,minmax(0,1fr))}}
+body{margin:0;background:#080d18;color:#edf3ff;font:15px Arial,sans-serif}
+header{padding:20px;background:#111a2b;border-bottom:1px solid #293750}
+h1{font-size:24px;color:#24d69a;margin:0}
+header p,.muted,.note{color:#9aabc5;font-size:12px;line-height:1.5}
+main{max-width:850px;margin:auto;padding:14px}
+.panel{background:#111a2b;border:1px solid #293750;border-radius:14px;padding:15px;margin-bottom:14px}
+h2{font-size:18px;margin:0 0 14px}
+h3{font-size:14px}
+input,select{width:100%;padding:12px;margin:6px 0 12px;border-radius:8px;border:1px solid #34435d;background:#0a1220;color:white;font-size:15px}
+button{padding:12px 15px;border:0;border-radius:8px;background:#24d69a;color:#06140e;font-weight:bold;cursor:pointer;margin:4px 2px}
+.secondary{background:#293750;color:white}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.card{background:#0a1322;border:1px solid #293750;padding:12px;border-radius:9px;overflow-wrap:anywhere}
+.card b{display:block;margin:7px 0}
+.green{color:#24d69a}.red{color:#ff647c}.blue{color:#82b4ff}
+.coin{cursor:pointer}
+.coin.active{border-color:#24d69a}
+.signal{font-size:23px;font-weight:bold;margin:10px 0}
+.small{font-size:12px;color:#9aabc5;line-height:1.5}
+.item{padding:11px 0;border-bottom:1px solid #293750;overflow-wrap:anywhere}
+.item:last-child{border-bottom:0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+canvas{width:100%;height:160px}
+footer{text-align:center;color:#9aabc5;padding:20px;font-size:12px}
 </style>
 </head>
 <body>
 <header>
-  <h1>₿ Crypto Analyzer Pro</h1>
-  <p>Live market • Technical analysis • Risk calculator</p>
+<h1>₿ Crypto Analyzer Pro</h1>
+<p>Live prices • Advanced signals • Price alerts • Whale monitor</p>
 </header>
 <main>
-  <section class="panel">
-    <h2>Live Crypto Prices</h2>
-    <p class="muted" id="updated">Connecting to market...</p>
-    <div class="coins" id="coins"></div>
-    <p class="note">Prices are provided by Binance public market data. If data fails, wait and refresh.</p>
-    <button class="secondary" id="refresh">Refresh Prices</button>
-  </section>
+<section class="panel">
+<h2>📈 Live Market</h2>
+<p id="marketStatus" class="muted">Loading prices...</p>
+<div id="coins" class="grid"></div>
+<button id="refresh">Refresh Prices</button>
+</section>
 
-  <section class="panel">
-    <h2>Technical Analysis</h2>
-    <label for="symbol">Select coin</label>
-    <select id="symbol">
-      <option value="BTCUSDT">Bitcoin (BTC)</option>
-      <option value="ETHUSDT">Ethereum (ETH)</option>
-      <option value="BNBUSDT">BNB</option>
-      <option value="SOLUSDT">Solana (SOL)</option>
-      <option value="XRPUSDT">XRP</option>
-    </select>
-    <label for="interval">Chart timeframe</label>
-    <select id="interval">
-      <option value="15m">15 minutes</option>
-      <option value="1h" selected>1 hour</option>
-      <option value="4h">4 hours</option>
-      <option value="1d">1 day</option>
-    </select>
-    <button id="analyze">Analyze Coin</button>
-    <p class="muted" id="status">Select a coin and start analysis.</p>
-    <div class="signal">
-      <span class="muted">Technical Signal</span>
-      <strong id="signal">--</strong>
-      <span class="muted" id="reason">Waiting for market data</span>
-    </div>
-    <div class="stats" style="margin-top:12px">
-      <div class="stat"><span>Current Price</span><b id="current">--</b></div>
-      <div class="stat"><span>RSI (14)</span><b id="rsi">--</b></div>
-      <div class="stat"><span>EMA (9)</span><b id="ema9">--</b></div>
-      <div class="stat"><span>EMA (21)</span><b id="ema21">--</b></div>
-    </div>
-    <h2 style="margin-top:20px">Recent Price Trend</h2>
-    <canvas id="chart"></canvas>
-    <div class="stats">
-      <div class="stat"><span>Illustrative Entry</span><b id="entry">--</b></div>
-      <div class="stat"><span>Stop-Loss (2%)</span><b id="stop">--</b></div>
-      <div class="stat"><span>Target (4%)</span><b id="target">--</b></div>
-      <div class="stat"><span>Risk/Reward</span><b>1 : 2</b></div>
-    </div>
-    <p class="note">Signals are rule-based estimates, not guaranteed predictions or personalized financial advice. The sample stop-loss and target are illustrative only.</p>
-  </section>
+<section class="panel">
+<h2>📊 Advanced Signals</h2>
+<label>Coin</label>
+<select id="symbol">
+<option value="BTCUSDT">Bitcoin (BTC)</option>
+<option value="ETHUSDT">Ethereum (ETH)</option>
+<option value="BNBUSDT">BNB</option>
+<option value="SOLUSDT">Solana (SOL)</option>
+<option value="XRPUSDT">XRP</option>
+</select>
+<label>Timeframe</label>
+<select id="interval">
+<option value="15m">15 minutes</option>
+<option value="1h" selected>1 hour</option>
+<option value="4h">4 hours</option>
+<option value="1d">1 day</option>
+</select>
+<button id="analyze">Analyze Coin</button>
+<p id="analysisStatus" class="muted">Waiting for analysis...</p>
+<div class="card">
+<span class="small">Combined technical signal</span>
+<div id="signal" class="signal">--</div>
+<div id="reason" class="small">RSI + MACD + EMA</div>
+</div>
+<div class="grid" style="margin-top:10px">
+<div class="card">Price<b id="price">--</b></div>
+<div class="card">RSI (14)<b id="rsi">--</b></div>
+<div class="card">EMA 9 / 21<b id="emas">--</b></div>
+<div class="card">MACD / Signal<b id="macd">--</b></div>
+<div class="card">Stop-loss estimate<b id="stop">--</b></div>
+<div class="card">Target estimate<b id="target">--</b></div>
+</div>
+<canvas id="chart"></canvas>
+<p class="note">Signals are indicator-based estimates, not guarantees. Stop-loss and target use illustrative levels, not personalized advice.</p>
+</section>
 
-  <section class="panel">
-    <h2>Profit / Loss Calculator</h2>
-    <label for="buyPrice">Buy price (USDT)</label>
-    <input id="buyPrice" type="number" min="0" step="any" placeholder="e.g. 60000">
-    <label for="sellPrice">Sell price (USDT)</label>
-    <input id="sellPrice" type="number" min="0" step="any" placeholder="e.g. 63000">
-    <label for="investment">Investment (USDT)</label>
-    <input id="investment" type="number" min="0" step="any" placeholder="e.g. 100">
-    <button id="calculate">Calculate Profit / Loss</button>
-    <div class="stats" style="margin-top:14px">
-      <div class="stat"><span>Profit / Loss</span><b id="pl">--</b></div>
-      <div class="stat"><span>Return</span><b id="roi">--</b></div>
-    </div>
-    <p class="note">Trading fees, slippage and taxes are not included.</p>
-  </section>
+<section class="panel">
+<h2>🔔 Price Alerts</h2>
+<p class="small">Set a price and get notified when it is crossed while this app is open and checking the market.</p>
+<label>Coin</label>
+<select id="alertSymbol">
+<option value="BTCUSDT">Bitcoin (BTC)</option>
+<option value="ETHUSDT">Ethereum (ETH)</option>
+<option value="BNBUSDT">BNB</option>
+<option value="SOLUSDT">Solana (SOL)</option>
+<option value="XRPUSDT">XRP</option>
+</select>
+<label>Alert when price reaches (USDT)</label>
+<input id="alertPrice" type="number" min="0" step="any" placeholder="e.g. 70000">
+<div class="row">
+<button id="above">Alert when price rises to</button>
+<button id="below" class="secondary">Alert when price falls to</button>
+</div>
+<p id="alertStatus" class="small">No alert set.</p>
+<div id="alerts"></div>
+<button id="clearAlerts" class="secondary">Clear all alerts</button>
+<p class="note">Notifications require browser permission. Alerts are checked while the app is active; they are not guaranteed when the app is closed or suspended.</p>
+</section>
+
+<section class="panel">
+<h2>🐋 Large Bitcoin Transactions</h2>
+<p class="small">Tracks large unconfirmed BTC transactions visible in the public Bitcoin mempool. This is not a complete whale tracker and does not prove buying or selling.</p>
+<div class="row">
+<div class="card">Minimum size (BTC)<input id="whaleMin" type="number" min="1" value="100"></div>
+<div class="card">Refresh interval<b>60 seconds</b><span class="small">While app is open</span></div>
+</div>
+<button id="whaleRefresh">Refresh whale data</button>
+<p id="whaleStatus" class="small">Connecting to public Bitcoin data...</p>
+<div id="whales"></div>
+<p class="note">Transactions can include exchange transfers, wallet reshuffling or other activity. Large transfers alone are not a reliable trading signal.</p>
+</section>
+
+<section class="panel">
+<h2>💰 Profit / Loss Calculator</h2>
+<label>Buy price (USDT)</label><input id="buy" type="number" min="0" placeholder="Buy price">
+<label>Sell price (USDT)</label><input id="sell" type="number" min="0" placeholder="Sell price">
+<label>Investment (USDT)</label><input id="investment" type="number" min="0" placeholder="Investment">
+<button id="calculate">Calculate</button>
+<div class="grid">
+<div class="card">Profit / Loss<b id="pl">--</b></div>
+<div class="card">Return<b id="roi">--</b></div>
+</div>
+<p class="note">Fees and slippage are not included.</p>
+</section>
 </main>
-<footer>Crypto Analyzer Pro • Use responsibly • Not financial advice</footer>
+<footer>Crypto Analyzer Pro • Market data can be delayed or unavailable • Not financial advice</footer>
 
 <script>
+const $=id=>document.getElementById(id);
 const symbols=["BTCUSDT","ETHUSDT","BNBUSDT","SOLUSDT","XRPUSDT"];
 const names={BTCUSDT:"Bitcoin",ETHUSDT:"Ethereum",BNBUSDT:"BNB",SOLUSDT:"Solana",XRPUSDT:"XRP"};
-const $=id=>document.getElementById(id);
-let market={};
-let active="BTCUSDT";
-const fmt=n=>Number(n).toLocaleString("en-US",{maximumFractionDigits:8});
-async function api(path){
-  const r=await fetch("https://api.binance.com/api/v3/"+path);
-  if(!r.ok)throw Error("Market API error: "+r.status);
-  return r.json();
+let market={},alerts=[],whaleSeen=new Set(),active="BTCUSDT";
+try{alerts=JSON.parse(localStorage.getItem("ca_alerts")||"[]")}catch(e){alerts=[]}
+const fmt=n=>Number(n).toLocaleString("en-US",{maximumFractionDigits:6});
+async function getJSON(url){
+ const r=await fetch(url);
+ if(!r.ok)throw Error("Request failed: "+r.status);
+ return r.json();
 }
 async function loadPrices(){
-  $("updated").textContent="Loading live prices...";
-  try{
-    const data=await Promise.all(symbols.map(s=>api("ticker/24hr?symbol="+s)));
-    data.forEach(d=>market[d.symbol]=d);
-    $("coins").innerHTML=data.map(d=>{
-      const change=Number(d.priceChangePercent);
-      return `<div class="coin ${d.symbol===active?"active":""}" data-symbol="${d.symbol}">
-        <b>${names[d.symbol]} (${d.symbol.replace("USDT","")})</b>
-        <div class="price">$${fmt(d.lastPrice)}</div>
-        <p class="${change>=0?"up":"down"}">${change>=0?"+":""}${change.toFixed(2)}% (24h)</p>
-        <span class="muted">24h volume: ${Number(d.quoteVolume).toLocaleString("en-US",{maximumFractionDigits:0})} USDT</span>
-      </div>`;
-    }).join("");
-    document.querySelectorAll(".coin").forEach(el=>el.onclick=()=>{
-      active=el.dataset.symbol;$("symbol").value=active;renderCoins();analyze();
-    });
-    $("updated").textContent="Last updated: "+new Date().toLocaleTimeString();
-  }catch(e){
-    $("updated").textContent="Could not load live prices. Check internet and try again.";
-  }
+ $("marketStatus").textContent="Loading live prices...";
+ try{
+  const data=await Promise.all(symbols.map(s=>getJSON("https://api.binance.com/api/v3/ticker/24hr?symbol="+s)));
+  data.forEach(d=>market[d.symbol]=d);
+  $("coins").innerHTML=data.map(d=>{
+   const ch=Number(d.priceChangePercent);
+   return `<div class="card coin ${d.symbol===active?"active":""}" data-s="${d.symbol}">
+   <b>${names[d.symbol]}</b><strong>$${fmt(d.lastPrice)}</strong>
+   <p class="${ch>=0?"green":"red"}">${ch>=0?"+":""}${ch.toFixed(2)}% (24h)</p></div>`;
+  }).join("");
+  document.querySelectorAll(".coin").forEach(el=>el.onclick=()=>{
+   active=el.dataset.s;$("symbol").value=active;
+   renderCoins();analyze();
+  });
+  $("marketStatus").textContent="Updated "+new Date().toLocaleTimeString();
+  checkAlerts();
+ }catch(e){$("marketStatus").textContent="Prices unavailable. Check internet and retry."}
 }
 function renderCoins(){
-  document.querySelectorAll(".coin").forEach(el=>el.classList.toggle("active",el.dataset.symbol===active));
+ document.querySelectorAll(".coin").forEach(el=>el.classList.toggle("active",el.dataset.s===active));
 }
-function ema(values,period){
-  const k=2/(period+1);
-  let e=values.slice(0,period).reduce((a,b)=>a+b,0)/period;
-  for(let i=period;i<values.length;i++)e=values[i]*k+e*(1-k);
-  return e;
+function ema(values,p){
+ let e=values.slice(0,p).reduce((a,b)=>a+b,0)/p,k=2/(p+1);
+ for(let i=p;i<values.length;i++)e=values[i]*k+e*(1-k);
+ return e;
 }
-function rsi(values,period=14){
-  let gains=0,losses=0;
-  for(let i=1;i<=period;i++){
-    const d=values[i]-values[i-1];
-    if(d>0)gains+=d;else losses-=d;
-  }
-  let avgG=gains/period,avgL=losses/period;
-  for(let i=period+1;i<values.length;i++){
-    const d=values[i]-values[i-1];
-    avgG=(avgG*(period-1)+Math.max(d,0))/period;
-    avgL=(avgL*(period-1)+Math.max(-d,0))/period;
-  }
-  if(avgL===0)return 100;
-  return 100-(100/(1+avgG/avgL));
+function calcRSI(v,p=14){
+ let g=0,l=0;
+ for(let i=1;i<=p;i++){let d=v[i]-v[i-1];if(d>0)g+=d;else l-=d}
+ g/=p;l/=p;
+ for(let i=p+1;i<v.length;i++){
+  let d=v[i]-v[i-1];
+  g=(g*(p-1)+Math.max(0,d))/p;
+  l=(l*(p-1)+Math.max(0,-d))/p;
+ }
+ return l===0?100:100-100/(1+g/l);
 }
-function drawChart(values){
-  const c=$("chart"),ctx=c.getContext("2d");
-  const w=c.clientWidth||320,h=190,dpr=window.devicePixelRatio||1;
-  c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);ctx.clearRect(0,0,w,h);
-  const min=Math.min(...values),max=Math.max(...values),range=max-min||1;
-  ctx.strokeStyle="#26334a";ctx.lineWidth=1;
-  for(let i=1;i<4;i++){ctx.beginPath();ctx.moveTo(0,h*i/4);ctx.lineTo(w,h*i/4);ctx.stroke();}
-  ctx.beginPath();
-  values.forEach((v,i)=>{
-    const x=i*w/(values.length-1);
-    const y=h-12-(v-min)/range*(h-24);
-    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
-  });
-  ctx.strokeStyle=values[values.length-1]>=values[0]?"#24d69a":"#ff647c";
-  ctx.lineWidth=2;ctx.stroke();
+function macdValues(v){
+ const fast=[],slow=[];
+ for(let i=0;i<v.length;i++){
+  fast.push(ema(v.slice(0,i+1),Math.min(12,i+1)));
+  slow.push(ema(v.slice(0,i+1),Math.min(26,i+1)));
+ }
+ const line=fast.map((x,i)=>x-slow[i]);
+ const sig=[];
+ for(let i=0;i<line.length;i++)sig.push(ema(line.slice(0,i+1),Math.min(9,i+1)));
+ return {line:line[line.length-1],sig:sig[sig.length-1]};
+}
+function drawChart(v){
+ const c=$("chart"),ctx=c.getContext("2d"),w=c.clientWidth||300,h=160,dpr=devicePixelRatio||1;
+ c.width=w*dpr;c.height=h*dpr;ctx.scale(dpr,dpr);
+ const mn=Math.min(...v),mx=Math.max(...v),range=mx-mn||1;
+ ctx.clearRect(0,0,w,h);ctx.beginPath();
+ v.forEach((x,i)=>{let px=i*w/(v.length-1),py=h-8-(x-mn)/range*(h-16);i?ctx.lineTo(px,py):ctx.moveTo(px,py)});
+ ctx.strokeStyle=v[v.length-1]>=v[0]?"#24d69a":"#ff647c";ctx.lineWidth=2;ctx.stroke();
 }
 async function analyze(){
-  const symbol=$("symbol").value,interval=$("interval").value;
-  active=symbol;renderCoins();
-  $("status").textContent="Fetching candles and calculating indicators...";
-  $("signal").textContent="Loading...";
-  try{
-    const candles=await api("klines?symbol="+symbol+"&interval="+interval+"&limit=100");
-    const closes=candles.map(c=>Number(c[4]));
-    const price=closes[closes.length-1];
-    const e9=ema(closes,9),e21=ema(closes,21),rv=rsi(closes);
-    let signal="NEUTRAL",reason="Indicators do not agree";
-    if(e9>e21&&rv>=50&&rv<70){signal="POSSIBLE BUY";reason="EMA 9 above EMA 21 and RSI supports upward momentum";}
-    else if(e9<e21&&rv<=50&&rv>30){signal="POSSIBLE SELL";reason="EMA 9 below EMA 21 and RSI supports downward momentum";}
-    else if(rv>=70){reason="RSI is high; price may be overbought";}
-    else if(rv<=30){reason="RSI is low; price may be oversold";}
-    $("signal").textContent=signal;
-    $("signal").style.color=signal==="POSSIBLE BUY"?"#24d69a":signal==="POSSIBLE SELL"?"#ff647c":"#edf3ff";
-    $("reason").textContent=reason;
-    $("current").textContent="$"+fmt(price);
-    $("rsi").textContent=rv.toFixed(2);
-    $("ema9").textContent="$"+fmt(e9);
-    $("ema21").textContent="$"+fmt(e21);
-    $("entry").textContent="$"+fmt(price);
-    $("stop").textContent="$"+fmt(price*.98);
-    $("target").textContent="$"+fmt(price*1.04);
-    drawChart(closes.slice(-40));
-    $("status").textContent=names[symbol]+" • "+interval+" • Updated "+new Date().toLocaleTimeString();
-    if(!$("buyPrice").value)$("buyPrice").value=price;
-  }catch(e){
-    $("status").textContent="Analysis failed. Check internet, then try again.";
-    $("signal").textContent="UNAVAILABLE";
-    $("reason").textContent="Market data could not be retrieved.";
+ const sym=$("symbol").value,tf=$("interval").value;
+ active=sym;renderCoins();$("analysisStatus").textContent="Calculating indicators...";
+ try{
+  const data=await getJSON("https://api.binance.com/api/v3/klines?symbol="+sym+"&interval="+tf+"&limit=100");
+  const v=data.map(x=>Number(x[4])),p=v[v.length-1],e9=ema(v,9),e21=ema(v,21),r=calcRSI(v),m=macdValues(v);
+  const up=e9>e21&&m.line>m.sig&&r>=50&&r<70;
+  const down=e9<e21&&m.line<m.sig&&r<=50&&r>30;
+  $("signal").textContent=up?"POSSIBLE BUY":down?"POSSIBLE SELL":"NEUTRAL";
+  $("signal").className="signal "+(up?"green":down?"red":"blue");
+  $("reason").textContent=up?"EMA, MACD and RSI indicate upward momentum.":down?"EMA, MACD and RSI indicate downward momentum.":"Indicators are mixed, or RSI is near an extreme.";
+  $("price").textContent="$"+fmt(p);$("rsi").textContent=r.toFixed(2);
+  $("emas").textContent=fmt(e9)+" / "+fmt(e21);
+  $("macd").textContent=fmt(m.line)+" / "+fmt(m.sig);
+  $("stop").textContent="$"+fmt(p*.98);$("target").textContent="$"+fmt(p*1.04);
+  drawChart(v.slice(-40));
+  $("analysisStatus").textContent=names[sym]+" • "+tf+" • "+new Date().toLocaleTimeString();
+ }catch(e){$("analysisStatus").textContent="Analysis unavailable. Try again.";$("signal").textContent="UNAVAILABLE"}
+}
+function saveAlerts(){localStorage.setItem("ca_alerts",JSON.stringify(alerts));renderAlerts()}
+function renderAlerts(){
+ $("alerts").innerHTML=alerts.map((a,i)=>`<div class="item">${names[a.symbol]}: ${a.direction==="above"?"rises to":"falls to"} $${fmt(a.price)} <button class="secondary" data-del="${i}">Remove</button></div>`).join("");
+ document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{alerts.splice(Number(b.dataset.del),1);saveAlerts()});
+ if(!alerts.length)$("alertStatus").textContent="No active alerts.";
+}
+async function addAlert(direction){
+ const symbol=$("alertSymbol").value,price=Number($("alertPrice").value);
+ if(!(price>0)){$("alertStatus").textContent="Please enter a valid target price.";return}
+ if("Notification" in window && Notification.permission==="default"){
+  try{await Notification.requestPermission()}catch(e){}
+ }
+ alerts.push({symbol,price,direction,id:Date.now()});saveAlerts();
+ $("alertStatus").textContent="Alert saved. Keep the app active for checks.";
+}
+function checkAlerts(){
+ let changed=false;
+ alerts=alerts.filter(a=>{
+  const d=market[a.symbol];if(!d)return true;
+  const p=Number(d.lastPrice),hit=a.direction==="above"?p>=a.price:p<=a.price;
+  if(hit){
+   const msg=names[a.symbol]+" reached $"+fmt(p);
+   $("alertStatus").textContent="TRIGGERED: "+msg;
+   if("Notification" in window&&Notification.permission==="granted"){
+    try{new Notification("Crypto Price Alert",{body:msg})}catch(e){}
+   }
+   changed=true;return false;
   }
+  return true;
+ });
+ if(changed)saveAlerts();
+}
+async function loadWhales(){
+ $("whaleStatus").textContent="Loading unconfirmed Bitcoin transactions...";
+ try{
+  const txs=await getJSON("https://blockstream.info/api/mempool/recent");
+  const min=Math.max(1,Number($("whaleMin").value)||100);
+  const big=[];
+  for(const tx of txs){
+   if(whaleSeen.has(tx.txid))continue;
+   whaleSeen.add(tx.txid);
+   try{
+    const detail=await getJSON("https://blockstream.info/api/tx/"+tx.txid);
+    const btc=(detail.vout||[]).reduce((sum,o)=>sum+Number(o.value||0),0)/1e8;
+    if(btc>=min)big.push({txid:tx.txid,btc,fee:detail.fee||0});
+   }catch(e){}
+  }
+  if(big.length){
+   const old=$("whales").innerHTML;
+   $("whales").innerHTML=big.map(t=>`<div class="item"><b class="blue">${fmt(t.btc)} BTC total outputs</b><div class="small">Fee: ${t.fee} sats</div><div class="small">TX: ${t.txid}</div><a style="color:#82b4ff" href="https://blockstream.info/tx/${t.txid}" target="_blank" rel="noopener">View transaction</a></div>`).join("")+old;
+  }
+  $("whaleStatus").textContent="Checked "+txs.length+" recent mempool entries • "+new Date().toLocaleTimeString()+". Only new transactions are listed.";
+ }catch(e){$("whaleStatus").textContent="Whale data unavailable. Try again later."}
 }
 $("refresh").onclick=loadPrices;
 $("analyze").onclick=analyze;
-$("symbol").onchange=()=>{active=$("symbol").value;renderCoins();analyze();};
+$("symbol").onchange=analyze;
 $("interval").onchange=analyze;
+$("above").onclick=()=>addAlert("above");
+$("below").onclick=()=>addAlert("below");
+$("clearAlerts").onclick=()=>{alerts=[];saveAlerts()};
+$("whaleRefresh").onclick=loadWhales;
 $("calculate").onclick=()=>{
-  const b=Number($("buyPrice").value),s=Number($("sellPrice").value),i=Number($("investment").value);
-  if(!(b>0&&s>0&&i>0)){
-    $("pl").textContent="Enter valid values";
-    $("roi").textContent="--";return;
-  }
-  const result=i*(s-b)/b,percent=(s-b)/b*100;
-  $("pl").textContent=(result>=0?"+$":"-$")+fmt(Math.abs(result));
-  $("pl").style.color=result>=0?"#24d69a":"#ff647c";
-  $("roi").textContent=(percent>=0?"+":"")+percent.toFixed(2)+"%";
+ const b=Number($("buy").value),s=Number($("sell").value),i=Number($("investment").value);
+ if(!(b>0&&s>0&&i>0)){$("pl").textContent="Enter valid values";$("roi").textContent="--";return}
+ const p=i*(s-b)/b,r=(s-b)/b*100;
+ $("pl").textContent=(p>=0?"+$":"-$")+fmt(Math.abs(p));
+ $("pl").className=p>=0?"green":"red";
+ $("roi").textContent=(r>=0?"+":"")+r.toFixed(2)+"%";
 };
+renderAlerts();
 loadPrices();
 analyze();
-setInterval(loadPrices,60000);
+loadWhales();
+setInterval(loadPrices,30000);
+setInterval(loadWhales,60000);
 </script>
 </body>
 </html>
